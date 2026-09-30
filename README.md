@@ -1,57 +1,24 @@
 # Order Service
 
-The Order Service is a backend service that receives orders from the store-front and sends these orders to a RabbitMQ message queue. It enables decoupling of the order processing logic from the product service, allowing for more scalable and maintainable architecture.
+The Order Service accepts order requests and publishes them to the durable RabbitMQ order_queue. For Lab 2 it runs on a dedicated Azure VM and connects to RabbitMQ on a separate VM.
 
-## Requirements
+## Configuration
 
-- Node.js 24 LTS and npm, installed below
-- RabbitMQ running on the same VM or local machine
-- Start inside the repository's `order-service` directory. The main guide already takes you there.
+Create an untracked .env file in this repository root:
 
-## Setup Instructions
+RABBITMQ_CONNECTION_STRING=amqp://orderapp:URL_ENCODED_PASSWORD@<RABBITMQ-VM-PUBLIC-IP>:5672/
+PORT=3000
 
-1. Update the package list and add the NodeSource repository for Node.js 24:
+Use the orderapp account created on the RabbitMQ VM, percent-encode special characters in its password, and replace the broker placeholder with the RabbitMQ VM public IP. Existing environment variables take precedence. Keep real credentials in .env only; .env.example contains placeholders. Restart the process after configuration changes.
 
-   ```bash
-   sudo apt update
-   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-   ```
+## Install and run
 
-2. Install Node.js and its bundled npm:
+On the order-service VM, install Node.js 24 LTS and npm. From the repository root, run npm ci, npm test, then node index.js. The service listens on all IPv4 interfaces at port 3000.
 
-   ```bash
-   sudo apt install -y nodejs
-   node --version
-   npm --version
-   ```
+The order-service NSG should allow TCP 3000 only from the laptop public IP. The RabbitMQ NSG should allow TCP 5672 only from this VM public IP. Port 15672 is optional and should remain closed for this lab.
 
-   Node.js should report `v24.x`. Use this same runtime for the Store Front. [Node.js release schedule](https://nodejs.org/en/about/previous-releases)
+## Verify
 
-3. Install the versions recorded in the committed lockfile:
+Run npm test for the broker-independent suite. For a live check, POST this order to http://localhost:3000/orders from another terminal on the VM: {"product":{"id":1,"name":"Dog Food","price":19.99},"quantity":2,"totalPrice":39.98}. Expect HTTP 200 with Order received only after RabbitMQ confirms the persistent message.
 
-   ```bash
-   npm ci
-   ```
-
-4. Start the service:
-
-   ```bash
-   node index.js
-   ```
-
-   Expect `Order service is running on http://localhost:3000`. Keep this terminal open; do not start a second copy from the main guide.
-
-The service listens on port 3000 on all interfaces. On the VM, send requests to `http://localhost:3000/orders`. From your laptop, use `http://<VM-PUBLIC-IP>:3000/orders` with port 3000 allowed by the NSG. VS Code port forwarding is an optional alternative for accessing a forwarded port through your laptop's localhost.
-
-## Testing
-
-From another terminal, use the VS Code **REST Client** extension with `test-order-service.http`, or run:
-
-```bash
-curl -i -X POST http://localhost:3000/orders \
-  -H 'Content-Type: application/json' \
-  -d '{"product":"Cat Food"}'
-sudo rabbitmqctl list_queues name durable messages
-```
-
-Expect HTTP 200 with `Order received` and an increased count in the durable `order_queue`. The service waits for RabbitMQ to confirm a persistent, routable message before reporting success, then closes the request's connection. Orders are accepted and queued; this lab has no consumer that fulfills them.
+On the RabbitMQ VM, run sudo rabbitmqctl list_queues name durable messages and verify order_queue is durable and its message count increased. This lab has no order-processing consumer, so accepted orders remain queued.
