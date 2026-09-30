@@ -6,10 +6,10 @@ The Order Service accepts order requests and publishes them to the durable Rabbi
 
 Create an untracked .env file in this repository root:
 
-RABBITMQ_CONNECTION_STRING=amqp://orderapp:URL_ENCODED_PASSWORD@<RABBITMQ-VM-PUBLIC-IP>:5672/
+RABBITMQ_CONNECTION_STRING=amqp://orderapp:URL_ENCODED_PASSWORD@RABBITMQ_VM_PUBLIC_IP:5672/
 PORT=3000
 
-Use the orderapp account created on the RabbitMQ VM, percent-encode special characters in its password, and replace the broker placeholder with the RabbitMQ VM public IP. Existing environment variables take precedence. Keep real credentials in .env only; .env.example contains placeholders. Restart the process after configuration changes.
+Use the orderapp account created on the RabbitMQ VM, percent-encode special characters in its password, and replace RABBITMQ_VM_PUBLIC_IP with the RabbitMQ VM's public IP. Existing environment variables take precedence. Keep real credentials in .env only; .env.example contains placeholders. Restart the process after configuration changes.
 
 ## Install and run
 
